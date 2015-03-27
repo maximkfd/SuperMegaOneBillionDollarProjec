@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">SuperMegaOneBillionDollarProject</string>
+    <string name="title_activity_maps">Map</string>
+    <string name="your_name">Your Name</string>
+    <string name="reward">Reward</string>
+    <string name="short_description">Short Description</string>
+    <string name="full_description">Full Description</string>
+
+</resources>
