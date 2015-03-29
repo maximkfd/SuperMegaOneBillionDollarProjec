@@ -95,7 +95,7 @@ public class NewMarkActivity extends Activity {
             Double latitude  = intent.getDoubleExtra("latitude", 0.00);
             params.add(new BasicNameValuePair("longitude", longitude.toString()));
             params.add(new BasicNameValuePair("latitude", latitude.toString()));
-            params.add(new BasicNameValuePair("latitude", fullDescription));
+//            params.add(new BasicNameValuePair("full_description", fullDescription));
 
             // получаем JSON объект
             JSONObject json = jsonParser.makeHttpRequest(url_create_product, "POST", params);

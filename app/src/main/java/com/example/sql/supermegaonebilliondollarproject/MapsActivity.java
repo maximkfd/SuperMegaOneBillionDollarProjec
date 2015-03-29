@@ -2,14 +2,18 @@ package com.example.sql.supermegaonebilliondollarproject;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.View;
 
+import com.example.sql.database.Base;
 import com.example.sql.parser.JSONParser;
 
 import com.example.sql.supermegaonebilliondollarproject.R;
@@ -20,6 +24,7 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import org.apache.http.NameValuePair;
@@ -28,6 +33,7 @@ import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -36,6 +42,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class MapsActivity extends FragmentActivity {
@@ -46,6 +53,14 @@ public class MapsActivity extends FragmentActivity {
     public Context context = this;
 
     private static final String TAG_SUCCESS = "success";
+    private static final String TAG_MARKS = "marks";
+    private static final String TAG_AUTHOR = "authorName";
+    private static final String TAG_LONGITUDE = "longitude";
+    private static final String TAG_LATITUDE = "latitude";
+    private static final String TAG_REWARD = "reward";
+    private static final String TAG_SHORT_DESCRIPTION = "short_description";
+    private static final String TAG_FULL_DESCRIPTION = "full_description";
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,7 +74,45 @@ public class MapsActivity extends FragmentActivity {
             finish();
             return;
         }
+
         init();
+
+        map.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
+            @Override
+            public void onInfoWindowClick(Marker marker) {
+                Intent intent = new Intent(getApplicationContext(), NewMarkActivity.class);
+                startActivity(intent);
+            }
+        });
+
+        try {
+            Base sqh = new Base(getApplicationContext());
+            SQLiteDatabase mDBRead = sqh.getReadableDatabase();
+
+            new ReqireMarks().execute();
+
+            Cursor cursor = mDBRead.query(Base.TABLE_NAME,
+                    new String[]{
+                            Base._ID, Base.FULL_DESCRIPTION, Base.SHORT_DESCRIPTION,
+                            Base.REWARD, Base.LATITUDE, Base.LONGITUDE, Base.AUTHOR_NAME
+                    },
+                    null,
+                    null,
+                    null,
+                    null,
+                    null
+            );
+            while (cursor.moveToNext()){
+                LatLng latLng = new LatLng(
+                        cursor.getDouble(cursor.getColumnIndex(Base.LATITUDE)),
+                        cursor.getDouble(cursor.getColumnIndex(Base.LONGITUDE)));
+                String sd = cursor.getString(cursor.getColumnIndex(TAG_SHORT_DESCRIPTION));
+//                String author = cursor.getString(cursor.getColumnIndex(TAG_AUTHOR));
+                map.addMarker(new MarkerOptions().position(latLng).title(sd));
+            }
+        } catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
     private void init() {
@@ -103,6 +156,10 @@ public class MapsActivity extends FragmentActivity {
 
     }
 
+    public void OnMarkerClick(Marker marker){
+
+    }
+
     class ReqireMarks extends AsyncTask<String, String, String> {
 
         private ProgressDialog pDialog;
@@ -110,7 +167,7 @@ public class MapsActivity extends FragmentActivity {
         JSONParser jsonParser = new JSONParser();
 
 
-        private String url_get_marks = "http://" + JSONParser.IP + "/het_marks.php";
+        private String url_get_marks = "http://" + JSONParser.IP + "/1.php";
 
         protected void onPreExecute() {
             super.onPreExecute();
@@ -131,11 +188,35 @@ public class MapsActivity extends FragmentActivity {
 
                 if (success == 1) {
                     // продукт удачно создан
-                    Intent i = new Intent(getApplicationContext(), MapsActivity.class);
-//                    startActivity(i);
+                    JSONArray marks = json.getJSONArray(TAG_MARKS);
+                    for (int i = 0; i < marks.length(); i++){
+                        JSONObject m = marks.getJSONObject(i);
 
-                    // закрываем это окно
-                    finish();
+                        String author = m.getString(TAG_AUTHOR);
+                        String short_description = m.getString(TAG_SHORT_DESCRIPTION);
+                        String full_description = m.getString(TAG_FULL_DESCRIPTION);
+                        Integer reward = m.getInt(TAG_REWARD);
+                        Double latitude = m.getDouble(TAG_LATITUDE);
+                        Double longitude = m.getDouble(TAG_LONGITUDE);
+                        try {
+                            Base sqh = new Base(getApplicationContext());
+                            SQLiteDatabase mDBWrite = sqh.getWritableDatabase();
+
+                            ContentValues cv = new ContentValues();
+                            cv.put(Base.LATITUDE, latitude);
+                            cv.put(Base.LONGITUDE, longitude);
+                            cv.put(Base.AUTHOR_NAME, author);
+                            cv.put(Base.SHORT_DESCRIPTION, short_description);
+                            cv.put(Base.FULL_DESCRIPTION, full_description);
+                            cv.put(Base.REWARD, reward);
+
+                            mDBWrite.insert(Base.TABLE_NAME, Base._ID, cv);
+
+                        } catch (Exception e){
+                            e.printStackTrace();
+                        }
+
+                    }
                 }
             } catch (JSONException e) {
                 e.printStackTrace();

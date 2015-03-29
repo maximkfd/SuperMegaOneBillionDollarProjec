@@ -24,7 +24,7 @@ import java.util.List;
 
 public class JSONParser {
 
-    static public String IP = "192.168.43.185";
+    static public String IP = "192.168.0.103";
 
     static InputStream is = null;
     static JSONObject jObj = null;
