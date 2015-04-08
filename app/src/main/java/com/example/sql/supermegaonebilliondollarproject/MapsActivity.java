@@ -81,6 +81,7 @@ public class MapsActivity extends FragmentActivity {
             @Override
             public void onInfoWindowClick(Marker marker) {
                 Intent intent = new Intent(getApplicationContext(), NewMarkActivity.class);
+                intent.putExtra("markerID", marker.getId());
                 startActivity(intent);
             }
         });
@@ -88,6 +89,7 @@ public class MapsActivity extends FragmentActivity {
         try {
             Base sqh = new Base(getApplicationContext());
             SQLiteDatabase mDBRead = sqh.getReadableDatabase();
+            SQLiteDatabase mDBWrite= sqh.getWritableDatabase();
 
             new ReqireMarks().execute();
 
@@ -109,6 +111,7 @@ public class MapsActivity extends FragmentActivity {
                 String sd = cursor.getString(cursor.getColumnIndex(TAG_SHORT_DESCRIPTION));
 //                String author = cursor.getString(cursor.getColumnIndex(TAG_AUTHOR));
                 map.addMarker(new MarkerOptions().position(latLng).title(sd));
+
             }
         } catch (Exception e){
             e.printStackTrace();
@@ -167,7 +170,7 @@ public class MapsActivity extends FragmentActivity {
         JSONParser jsonParser = new JSONParser();
 
 
-        private String url_get_marks = "http://" + JSONParser.IP + "/1.php";
+        private String url_get_marks = "http://" + JSONParser.IP + "/db_get_marks.php";
 
         protected void onPreExecute() {
             super.onPreExecute();

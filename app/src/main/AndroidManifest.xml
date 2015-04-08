@@ -50,6 +50,10 @@
             android:name=".EditProductActivity"
             android:label="Edit Product" >
         </activity>
+        <activity
+            android:name=".MarkViewActivity"
+            android:label="@string/title_activity_mark_view" >
+        </activity>
     </application>
 
 </manifest>

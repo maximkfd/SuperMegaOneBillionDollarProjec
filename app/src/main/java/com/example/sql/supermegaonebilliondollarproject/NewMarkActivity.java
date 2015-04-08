@@ -29,7 +29,7 @@ public class NewMarkActivity extends Activity {
     EditText inputFullDescription;
     EditText inputReward;
 
-    private static String url_create_product = "http://"+JSONParser.IP+"/create_product.php";
+    private static String url_create_product = "http://"+JSONParser.IP+"/db_create_mark.php";
 
     private static final String TAG_SUCCESS = "success";
 
