@@ -27,7 +27,8 @@
 
         <activity
             android:name=".MapsActivity"
-            android:label="@string/title_activity_maps" >
+            android:label="@string/title_activity_maps"
+            android:theme="@style/Base.Theme.AppCompat.Light">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -53,6 +54,10 @@
         <activity
             android:name=".MarkViewActivity"
             android:label="@string/title_activity_mark_view" >
+        </activity>
+        <activity
+            android:name="com.example.sql.preferences.PreferencesMain"
+            android:label="@string/title_activity_preferences_main" >
         </activity>
     </application>
 

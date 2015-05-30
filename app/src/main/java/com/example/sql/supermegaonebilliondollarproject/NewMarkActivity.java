@@ -2,13 +2,17 @@ package com.example.sql.supermegaonebilliondollarproject;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.content.ContentValues;
 import android.content.Intent;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+
+import com.example.sql.database.MarksBase;
 import com.example.sql.parser.JSONParser;
 
 import org.apache.http.NameValuePair;
@@ -28,6 +32,7 @@ public class NewMarkActivity extends Activity {
     EditText inputShortDescription;
     EditText inputFullDescription;
     EditText inputReward;
+    Intent intent;
 
     private static String url_create_product = "http://"+JSONParser.IP+"/db_create_mark.php";
 
@@ -37,7 +42,7 @@ public class NewMarkActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.add_product);
-
+        intent = getIntent();
 //        Intent intent = getIntent();
 //        final double longitude = intent.getDoubleExtra("longitude", 0.00);
 //        final double latitude  = intent.getDoubleExtra("latitude", 0.00);
@@ -54,6 +59,18 @@ public class NewMarkActivity extends Activity {
             @Override
             public void onClick(View view) {
                 new CreateNewProduct().execute();
+
+                MarksBase sqh = new MarksBase(getApplicationContext());
+                SQLiteDatabase mDBWrite = sqh.getWritableDatabase();
+
+                ContentValues cv = new ContentValues();
+                cv.put(MarksBase.LATITUDE, intent.getDoubleExtra("longitude", 0));
+                cv.put(MarksBase.LONGITUDE, intent.getDoubleExtra("latitude", 0));
+                cv.put(MarksBase.AUTHOR_NAME, inputName.getText().toString());
+                cv.put(MarksBase.SHORT_DESCRIPTION, inputShortDescription.getText().toString());
+                cv.put(MarksBase.FULL_DESCRIPTION, inputFullDescription.getText().toString());
+                cv.put(MarksBase.REWARD, inputReward.getText().toString());
+                mDBWrite.insert(MarksBase.TABLE_NAME, MarksBase._ID, cv);
             }
         });
     }

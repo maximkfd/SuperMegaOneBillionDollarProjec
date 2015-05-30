@@ -4,11 +4,17 @@
     <string name="app_name">SuperMegaOneBillionDollarProject</string>
     <string name="title_activity_maps">Map</string>
     <string name="your_name">Your Name</string>
-    <string name="reward">Reward</string>
+    <string name="reward">Num</string>
     <string name="short_description">Short Description</string>
     <string name="full_description">Full Description</string>
     <string name="title_activity_mark_view">MarkViewActivity</string>
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
+    <string name="title_activity_preferences_main">PreferencesMain</string>
+    <string name="preference_ip_title">IP</string>
+    <string name="item1">Item1</string>
+    <string name="item2">Item2</string>
+    <string name="item3">Item3</string>
+    <string name="item4">Item4</string>
 
 </resources>

@@ -1,48 +1,40 @@
 package com.example.sql.supermegaonebilliondollarproject;
 
-import android.app.Activity;
+import android.app.ActionBar;
 import android.app.ProgressDialog;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 
-import com.example.sql.database.Base;
+import com.example.sql.database.MarksBase;
 import com.example.sql.parser.JSONParser;
 
-import com.example.sql.supermegaonebilliondollarproject.R;
-import com.google.android.gms.maps.CameraUpdate;
+import com.example.sql.preferences.PreferencesMain;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import org.apache.http.NameValuePair;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.ResponseHandler;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.BasicResponseHandler;
-import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.net.URL;
-import java.net.URLConnection;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 public class MapsActivity extends FragmentActivity {
@@ -60,12 +52,28 @@ public class MapsActivity extends FragmentActivity {
     private static final String TAG_REWARD = "reward";
     private static final String TAG_SHORT_DESCRIPTION = "short_description";
     private static final String TAG_FULL_DESCRIPTION = "full_description";
-
-
+    Marker tmpMarker;
+    Marker[] markers = new Marker[1000];
+    int countMarkers = 0;
+    MarksBase sqh;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+
+        ActionBar actionBar = getActionBar();
+        try {
+            actionBar.show();
+        } catch (NullPointerException e){
+            e.printStackTrace();
+        }
+
+        SharedPreferences sh = PreferenceManager.getDefaultSharedPreferences(this);
+        JSONParser.IP = sh.getString("ip", "192.168.43.185");
+
+
+        sqh = new MarksBase(getApplicationContext());
+        sqh.onUpgrade(sqh.getWritableDatabase(), 1, 1);
 
         mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -80,39 +88,46 @@ public class MapsActivity extends FragmentActivity {
         map.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
             @Override
             public void onInfoWindowClick(Marker marker) {
-                Intent intent = new Intent(getApplicationContext(), NewMarkActivity.class);
+                Intent intent = new Intent(getApplicationContext(), MarkViewActivity.class);
                 intent.putExtra("markerID", marker.getId());
+                intent.putExtra("latLng", marker.getPosition());
+                SQLiteDatabase DBRead = sqh.getReadableDatabase();
                 startActivity(intent);
             }
         });
 
+//        update();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.action_settings) {
+            Intent i = new Intent(getApplicationContext(), PreferencesMain.class);
+            startActivity(i);
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void update(){
         try {
-            Base sqh = new Base(getApplicationContext());
-            SQLiteDatabase mDBRead = sqh.getReadableDatabase();
-            SQLiteDatabase mDBWrite= sqh.getWritableDatabase();
+            new RequireMarks().execute();
 
-            new ReqireMarks().execute();
 
-            Cursor cursor = mDBRead.query(Base.TABLE_NAME,
-                    new String[]{
-                            Base._ID, Base.FULL_DESCRIPTION, Base.SHORT_DESCRIPTION,
-                            Base.REWARD, Base.LATITUDE, Base.LONGITUDE, Base.AUTHOR_NAME
-                    },
-                    null,
-                    null,
-                    null,
-                    null,
-                    null
-            );
-            while (cursor.moveToNext()){
-                LatLng latLng = new LatLng(
-                        cursor.getDouble(cursor.getColumnIndex(Base.LATITUDE)),
-                        cursor.getDouble(cursor.getColumnIndex(Base.LONGITUDE)));
-                String sd = cursor.getString(cursor.getColumnIndex(TAG_SHORT_DESCRIPTION));
-//                String author = cursor.getString(cursor.getColumnIndex(TAG_AUTHOR));
-                map.addMarker(new MarkerOptions().position(latLng).title(sd));
 
-            }
         } catch (Exception e){
             e.printStackTrace();
         }
@@ -120,7 +135,7 @@ public class MapsActivity extends FragmentActivity {
 
     private void init() {
         //Perm: 58, 56,3\
-
+        map.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(58.0222, 56.308), 10));
         map.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
             @Override
             public void onMapClick(LatLng latLng) {
@@ -133,11 +148,29 @@ public class MapsActivity extends FragmentActivity {
             @Override
             public void onMapLongClick(LatLng latLng) {
                 Log.d(TAG, "onMapLongClick: " + latLng.latitude + "," + latLng.longitude);
-                map.addMarker(new MarkerOptions().position(latLng).title("SomeShit"));
                 Intent intent = new Intent(getApplicationContext(), NewMarkActivity.class);
                 intent.putExtra("longitude", latLng.longitude);
                 intent.putExtra("latitude", latLng.latitude);
+
                 startActivity(intent);
+                Cursor cursor = (new MarksBase(getApplicationContext())).getWritableDatabase().query(
+                        MarksBase.TABLE_NAME,
+                        new String[]{
+                                MarksBase._ID, MarksBase.FULL_DESCRIPTION, MarksBase.SHORT_DESCRIPTION,
+                                MarksBase.REWARD, MarksBase.LATITUDE, MarksBase.LONGITUDE, MarksBase.AUTHOR_NAME
+                        },
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+                );
+                cursor.moveToLast();
+                String sd = cursor.getString(cursor.getColumnIndex(MarksBase.SHORT_DESCRIPTION));
+
+                Marker marker = map.addMarker(new MarkerOptions().position(latLng).title("Click me"));
+                markers[countMarkers++] = marker;
+                marker.setTitle(sd);
             }
         });
 
@@ -152,18 +185,14 @@ public class MapsActivity extends FragmentActivity {
 
 
     public void onClickTest(View view) {
-        //Perm: 58.0222 56.308; 58.004, 56.301
-
+        //Perm:58.0222 56.308; 58.004, 56.301
+        update();
 //        HttpClient client = new DefaultHttpClient();
 //        HttpGet get = new HttpGet("127.0.0.1");
 
     }
 
-    public void OnMarkerClick(Marker marker){
-
-    }
-
-    class ReqireMarks extends AsyncTask<String, String, String> {
+    class RequireMarks extends AsyncTask<String, String, String> {
 
         private ProgressDialog pDialog;
 
@@ -187,10 +216,10 @@ public class MapsActivity extends FragmentActivity {
 
             Log.d("Create Response", json.toString());
             try {
+                countMarkers = 0;
                 int success = json.getInt(TAG_SUCCESS);
 
                 if (success == 1) {
-                    // продукт удачно создан
                     JSONArray marks = json.getJSONArray(TAG_MARKS);
                     for (int i = 0; i < marks.length(); i++){
                         JSONObject m = marks.getJSONObject(i);
@@ -202,18 +231,23 @@ public class MapsActivity extends FragmentActivity {
                         Double latitude = m.getDouble(TAG_LATITUDE);
                         Double longitude = m.getDouble(TAG_LONGITUDE);
                         try {
-                            Base sqh = new Base(getApplicationContext());
+                            MarksBase sqh = new MarksBase(getApplicationContext());
                             SQLiteDatabase mDBWrite = sqh.getWritableDatabase();
 
                             ContentValues cv = new ContentValues();
-                            cv.put(Base.LATITUDE, latitude);
-                            cv.put(Base.LONGITUDE, longitude);
-                            cv.put(Base.AUTHOR_NAME, author);
-                            cv.put(Base.SHORT_DESCRIPTION, short_description);
-                            cv.put(Base.FULL_DESCRIPTION, full_description);
-                            cv.put(Base.REWARD, reward);
+                            cv.put(MarksBase.LATITUDE, latitude);
+                            cv.put(MarksBase.LONGITUDE, longitude);
+                            cv.put(MarksBase.AUTHOR_NAME, author);
+                            cv.put(MarksBase.SHORT_DESCRIPTION, short_description);
+                            cv.put(MarksBase.FULL_DESCRIPTION, full_description);
+                            cv.put(MarksBase.REWARD, reward);
+                            try {
+                                markers[countMarkers++].remove();
+                            } catch (Exception e){
 
-                            mDBWrite.insert(Base.TABLE_NAME, Base._ID, cv);
+                                Log.d("Cannot delete marker", countMarkers + "");
+                            }
+                            mDBWrite.insert(MarksBase.TABLE_NAME, MarksBase._ID, cv);
 
                         } catch (Exception e){
                             e.printStackTrace();
@@ -230,7 +264,34 @@ public class MapsActivity extends FragmentActivity {
 
         protected void onPostExecute(String file_url) {
             pDialog.dismiss();
-        }
 
+            try {
+                countMarkers = 0;
+                SQLiteDatabase mDBRead = sqh.getReadableDatabase();
+                SQLiteDatabase mDBWrite = sqh.getWritableDatabase();
+                Cursor cursor = mDBRead.query(MarksBase.TABLE_NAME,
+                        new String[]{
+                                MarksBase._ID, MarksBase.FULL_DESCRIPTION, MarksBase.SHORT_DESCRIPTION,
+                                MarksBase.REWARD, MarksBase.LATITUDE, MarksBase.LONGITUDE, MarksBase.AUTHOR_NAME
+                        },
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+                );
+                while (cursor.moveToNext()) {
+                    LatLng latLng = new LatLng(
+                            cursor.getDouble(cursor.getColumnIndex(MarksBase.LATITUDE)),
+                            cursor.getDouble(cursor.getColumnIndex(MarksBase.LONGITUDE)));
+                    String sd = cursor.getString(cursor.getColumnIndex(TAG_SHORT_DESCRIPTION));
+//                String author = cursor.getString(cursor.getColumnIndex(TAG_AUTHOR));
+                    Marker marker = map.addMarker(new MarkerOptions().position(latLng).title(sd));
+                    markers[countMarkers++] = marker;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 }
