@@ -16,5 +16,7 @@
     <string name="item2">Item2</string>
     <string name="item3">Item3</string>
     <string name="item4">Item4</string>
+    <string name="refresh">Refresh</string>
+    <string name="action_bar_title"> </string>
 
 </resources>

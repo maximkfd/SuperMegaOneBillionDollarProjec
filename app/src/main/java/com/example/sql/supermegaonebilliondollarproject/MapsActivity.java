@@ -2,6 +2,7 @@ package com.example.sql.supermegaonebilliondollarproject;
 
 import android.app.ActionBar;
 import android.app.ProgressDialog;
+import android.content.ClipData;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
@@ -12,6 +13,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.app.FragmentActivity;
+import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -37,7 +39,7 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MapsActivity extends FragmentActivity {
+public class MapsActivity extends ActionBarActivity {
 
     SupportMapFragment mapFragment;
     GoogleMap map;
@@ -64,6 +66,7 @@ public class MapsActivity extends FragmentActivity {
         ActionBar actionBar = getActionBar();
         try {
             actionBar.show();
+            actionBar.setTitle(R.string.action_bar_title);
         } catch (NullPointerException e){
             e.printStackTrace();
         }
@@ -95,8 +98,6 @@ public class MapsActivity extends FragmentActivity {
                 startActivity(intent);
             }
         });
-
-//        update();
     }
 
     @Override
@@ -119,15 +120,16 @@ public class MapsActivity extends FragmentActivity {
             startActivity(i);
             return true;
         }
+        if (id == R.id.action_refresh){
+            update();
+            return true;
+        }
         return super.onOptionsItemSelected(item);
     }
 
     private void update(){
         try {
             new RequireMarks().execute();
-
-
-
         } catch (Exception e){
             e.printStackTrace();
         }
@@ -183,15 +185,6 @@ public class MapsActivity extends FragmentActivity {
         });
     }
 
-
-    public void onClickTest(View view) {
-        //Perm:58.0222 56.308; 58.004, 56.301
-        update();
-//        HttpClient client = new DefaultHttpClient();
-//        HttpGet get = new HttpGet("127.0.0.1");
-
-    }
-
     class RequireMarks extends AsyncTask<String, String, String> {
 
         private ProgressDialog pDialog;
@@ -211,6 +204,7 @@ public class MapsActivity extends FragmentActivity {
         }
 
         protected String doInBackground(String... args) {
+            //С сервера придёт только те, что в нужном городе. => нужно отправить город.
             List<NameValuePair> params = new ArrayList<>();
             JSONObject json = jsonParser.makeHttpRequest(url_get_marks, "POST", params);
 
@@ -221,6 +215,7 @@ public class MapsActivity extends FragmentActivity {
 
                 if (success == 1) {
                     JSONArray marks = json.getJSONArray(TAG_MARKS);
+                    MarksBase sqh = new MarksBase(getApplicationContext());
                     for (int i = 0; i < marks.length(); i++){
                         JSONObject m = marks.getJSONObject(i);
 
@@ -231,7 +226,8 @@ public class MapsActivity extends FragmentActivity {
                         Double latitude = m.getDouble(TAG_LATITUDE);
                         Double longitude = m.getDouble(TAG_LONGITUDE);
                         try {
-                            MarksBase sqh = new MarksBase(getApplicationContext());
+                            //TODO: check for memory leaks on multiple base creation
+                            //MarksBase sqh = new MarksBase(getApplicationContext());
                             SQLiteDatabase mDBWrite = sqh.getWritableDatabase();
 
                             ContentValues cv = new ContentValues();
@@ -244,8 +240,7 @@ public class MapsActivity extends FragmentActivity {
                             try {
                                 markers[countMarkers++].remove();
                             } catch (Exception e){
-
-                                Log.d("Cannot delete marker", countMarkers + "");
+                                Log.e("Cannot delete marker", countMarkers + "");
                             }
                             mDBWrite.insert(MarksBase.TABLE_NAME, MarksBase._ID, cv);
 
